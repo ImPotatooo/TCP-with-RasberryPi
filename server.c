@@ -376,11 +376,11 @@ static void html_escape(char *dst, int dst_sz, const char *src)
 {
     int d = 0, s = 0;
     while (src[s] && d < dst_sz - 6) {
-        if(src[s] == '>'){ 
+        if(src[s] == '<'){ 
             memcpy(dst+d, "&lt;",  4);
             d += 4; 
         }
-        else if(src[s] == '<'){ 
+        else if(src[s] == '>'){ 
             memcpy(dst+d, "&gt;",  4); 
             d += 4; 
         }
