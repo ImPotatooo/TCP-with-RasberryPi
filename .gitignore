@@ -1,0 +1,15 @@
+# ───── Claude 관련 ─────────────────────────────
+claude.md
+.claude/
+
+# ───── 빌드 산출물 ──────────────────────────────
+server_r
+client
+lib/*.o
+lib/libdevice.so
+
+# ───── 배포 타임스탬프 ───────────────────────────
+.deployed_server
+.deployed_device
+.deployed_html
+.dir_ready

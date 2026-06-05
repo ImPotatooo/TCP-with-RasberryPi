@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>라즈베리파이 제어 로그</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'D2Coding', 'Consolas', 'Courier New', monospace;
+            background: #f0f1f7;
+            color: #1e1e36;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── 헤더 ── */
+        header {
+            background: #1a1a38;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #e94560;
+            box-shadow: 0 0 8px rgba(233,69,96,0.7);
+        }
+
+        header h1 {
+            font-size: 15px;
+            color: #e8e8f8;
+            letter-spacing: 1.5px;
+            font-weight: normal;
+        }
+
+        header h1 span { color: #e94560; }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11.5px;
+            color: #9090b8;
+            background: rgba(255,255,255,0.06);
+            padding: 5px 13px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4caf50;
+            box-shadow: 0 0 6px rgba(76,175,80,0.8);
+            animation: pulse 2s infinite;
+        }
+
+        .dot.error {
+            background: #e94560;
+            box-shadow: 0 0 6px rgba(233,69,96,0.8);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.45; }
+        }
+
+        /* ── 필터 바 ── */
+        .filter-bar {
+            background: #ffffff;
+            padding: 9px 24px;
+            border-bottom: 1px solid #dde0ee;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .filter-label {
+            font-size: 10px;
+            color: #a0a0c0;
+            margin-right: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .btn {
+            padding: 4px 14px;
+            border: 1px solid #d0d3e8;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            background: #ffffff;
+            color: #8888aa;
+            transition: all 0.15s ease;
+            outline: none;
+        }
+
+        .btn:hover { color: #3a3a5a; border-color: #a0a0c8; background: #f4f5fc; }
+
+        .btn.active     { background: #1a1a38; border-color: #1a1a38; color: #ffffff; }
+        .btn-led.active { background: #e3f2fd; border-color: #0288d1; color: #0277bd; }
+        .btn-buz.active { background: #f1f8e9; border-color: #7cb342; color: #558b2f; }
+        .btn-cds.active { background: #fff3e0; border-color: #fb8c00; color: #e65100; }
+        .btn-seg.active { background: #f3e5f5; border-color: #ab47bc; color: #7b1fa2; }
+        .btn-tcp.active { background: #e0f2f1; border-color: #26a69a; color: #00695c; }
+
+        /* ── 툴바 ── */
+        .toolbar {
+            background: #f8f9fc;
+            padding: 5px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #dde0ee;
+            flex-shrink: 0;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 11px;
+            color: #a0a0c0;
+        }
+
+        #log-count     { color: #e94560; font-weight: bold; }
+        #refresh-count { color: #0288d1; }
+
+        .progress-bar {
+            width: 48px;
+            height: 2px;
+            background: #dde0ee;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #e94560;
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+
+        .auto-scroll-btn {
+            padding: 3px 10px;
+            border: 1px solid #d0d3e8;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            background: transparent;
+            color: #a0a0c0;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .auto-scroll-btn:hover { color: #3a3a5a; border-color: #9090b8; }
+        .auto-scroll-btn.on    { color: #0288d1; border-color: #0288d1; background: #e3f2fd; }
+
+        /* ── 컬럼 헤더 ── */
+        .col-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 48px 4px 40px;
+            font-size: 10px;
+            color: #b0b0cc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #dde0ee;
+            background: #f8f9fc;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .col-header .col-ts  { width: 176px; flex-shrink: 0; }
+        .col-header .col-msg { flex: 1; }
+
+        /* ── 로그 박스 ── */
+        #log-box {
+            flex: 1;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+
+        /* ── 로그 항목 ── */
+        .log-entry {
+            display: flex;
+            align-items: baseline;
+            padding: 5px 48px 5px 40px;
+            border-bottom: 1px solid #eeeef8;
+            font-size: 12.5px;
+            line-height: 1.65;
+            transition: background 0.1s, border-left-color 0.1s;
+            cursor: default;
+            border-left: 3px solid transparent;
+        }
+
+        .log-entry:nth-child(even) { background: #fafafe; }
+
+        .log-entry:hover {
+            background: #f0f2ff !important;
+            border-left-color: currentColor;
+            padding-left: 37px;
+        }
+
+        .log-entry .ts {
+            flex-shrink: 0;
+            width: 160px;
+            color: #c0c0d8;
+            font-size: 11px;
+            padding-right: 20px;
+            margin-right: 16px;
+            border-right: 1px solid #e4e4f4;
+            transition: color 0.1s;
+        }
+
+        .log-entry:hover .ts {
+            color: #9090b8;
+            border-right-color: #d0d0ea;
+        }
+
+        .log-entry .msg {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .log-entry:hover .msg {
+            white-space: normal;
+            overflow: visible;
+            word-break: break-all;
+        }
+
+        /* 장치별 색상 (라이트 테마 — 진하게) */
+        .log-entry.led { color: #0277bd; }
+        .log-entry.buz { color: #558b2f; }
+        .log-entry.cds { color: #e65100; }
+        .log-entry.seg { color: #7b1fa2; }
+        .log-entry.tcp { color: #00695c; }
+        .log-entry.sys { color: #9090aa; }
+
+        /* 빈 상태 */
+        .empty {
+            text-align: center;
+            color: #c8c8e0;
+            margin-top: 80px;
+            font-size: 13px;
+            line-height: 2.4;
+        }
+
+        .empty .icon { font-size: 28px; display: block; margin-bottom: 10px; }
+
+        /* 스크롤바 */
+        #log-box::-webkit-scrollbar       { width: 5px; }
+        #log-box::-webkit-scrollbar-track { background: #f0f1f7; }
+        #log-box::-webkit-scrollbar-thumb { background: #c8c8e0; border-radius: 4px; }
+        #log-box::-webkit-scrollbar-thumb:hover { background: #e94560; }
+    </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header>
+    <div class="header-left">
+        <div class="logo"></div>
+        <h1><span>RPi</span> 장치 제어 서버 로그</h1>
+    </div>
+    <div class="status-badge">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">연결 중...</span>
+    </div>
+</header>
+
+<!-- 필터 바 -->
+<div class="filter-bar">
+    <span class="filter-label">Filter</span>
+    <button class="btn active"    onclick="filter('ALL',   this)">전체</button>
+    <button class="btn btn-led"   onclick="filter('LED',   this)">LED</button>
+    <button class="btn btn-buz"   onclick="filter('BUZZER',this)">부저</button>
+    <button class="btn btn-cds"   onclick="filter('CDS',   this)">조도센서</button>
+    <button class="btn btn-seg"   onclick="filter('7SEG',  this)">7세그먼트</button>
+    <button class="btn btn-tcp"   onclick="filter('TCP',   this)">연결</button>
+</div>
+
+<!-- 툴바 -->
+<div class="toolbar">
+    <div class="toolbar-left">
+        <span>항목 <span id="log-count">0</span>개</span>
+        <span>갱신 <span id="refresh-count">3</span>초 후</span>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress" style="width:100%"></div>
+        </div>
+    </div>
+    <button class="auto-scroll-btn on" id="auto-scroll-btn" onclick="toggleAutoScroll()">
+        자동 스크롤 ON
+    </button>
+</div>
+
+<!-- 컬럼 헤더 -->
+<div class="col-header">
+    <span class="col-ts">타임스탬프</span>
+    <span class="col-msg">메시지</span>
+</div>
+
+<!-- 로그 출력 영역 -->
+<div id="log-box">
+    <div class="empty" id="empty-msg">
+        <span class="icon">&#128196;</span>
+        로그를 불러오는 중...
+    </div>
+</div>
+
+<script>
+    const INTERVAL    = 3;
+    let currentFilter = 'ALL';
+    let autoScroll    = true;
+    let countdown     = INTERVAL;
+
+    function filter(dev, btn) {
+        currentFilter = dev;
+        document.querySelectorAll('.filter-bar .btn')
+            .forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilter();
+    }
+
+    function applyFilter() {
+        document.querySelectorAll('#log-box .log-entry').forEach(el => {
+            el.style.display =
+                (currentFilter === 'ALL' || el.dataset.dev === currentFilter) ? '' : 'none';
+        });
+    }
+
+    function toggleAutoScroll() {
+        autoScroll = !autoScroll;
+        const btn = document.getElementById('auto-scroll-btn');
+        btn.textContent = '자동 스크롤 ' + (autoScroll ? 'ON' : 'OFF');
+        btn.classList.toggle('on', autoScroll);
+    }
+
+    async function fetchLog() {
+        const dot  = document.getElementById('status-dot');
+        const text = document.getElementById('status-text');
+        try {
+            const res  = await fetch('/log');
+            const html = await res.text();
+            const box  = document.getElementById('log-box');
+
+            box.innerHTML = html;
+            applyFilter();
+
+            const count = box.querySelectorAll('.log-entry').length;
+            document.getElementById('log-count').textContent = count;
+
+            dot.className    = 'dot';
+            text.textContent = '연결됨';
+
+            if (autoScroll) box.scrollTop = 0;  /* 최신 항목이 위에 있으므로 맨 위로 */
+        } catch (e) {
+            dot.className    = 'dot error';
+            text.textContent = '연결 오류';
+        }
+        countdown = INTERVAL;
+    }
+
+    setInterval(() => {
+        countdown = Math.max(0, countdown - 1);
+        document.getElementById('refresh-count').textContent = countdown;
+        const pct = (countdown / INTERVAL) * 100;
+        document.getElementById('progress').style.width = pct + '%';
+        if (countdown === 0) fetchLog();
+    }, 1000);
+
+    fetchLog();
+</script>
+
+</body>
+</html>
